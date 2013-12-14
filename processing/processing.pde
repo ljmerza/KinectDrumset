@@ -1,6 +1,6 @@
 /*-----------------------------------------------------------
-Created by: AdverseDeviant
-Version: 2.3
+Created by: Leonardo Merza
+Version: 3.0
 
 0 = leftTopDrum
 1 - rightTopDrum
