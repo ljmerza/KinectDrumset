@@ -87,7 +87,7 @@ boolean tracking = false;
 // current userid of tracked user
 int userID;
 // mapping of users
-int[] userMap;
+int[] userMapping;
 // background image
 PImage backgroundImage;
 // image from rgb camera
@@ -185,7 +185,7 @@ void setup()
   // enable rgb sensor
   kinect.enableRGB();
   // enable skeleton generation for joints
-  kinect.enableUser(SimpleOpenNI.SKEL_PROFILE_ALL);
+  kinect.enableUser();
 
   // create a window the size of the depth information
   size(kinect.depthWidth(), kinect.depthHeight()); 
@@ -236,30 +236,26 @@ void draw()
   //update kinect camera
   kinect.update(); 
   //get rgb and depth data
-  kinectRGB = kinect.rgbImage();
-  
-   // if kinet is tracking then draw background
-  if (tracking) {
-
-    // get the Kinect color image
-    rgbImage = kinect.rgbImage(); 
-    // prepare the color pixels
-    rgbImage.loadPixels();
-    loadPixels();
-  
-    // get pixels for each user tracking
-    userMap = kinect.getUsersPixels(SimpleOpenNI.USERS_ALL);
-    // for the length of the pixels tracked, color them
-    // in with the rgb camera
-    for (int i =0; i < userMap.length; i++) {
-      // if the pixel is part of the user
-      if (userMap[i] != 0) {
-        // set the sketch pixel to the color pixel
-        pixels[i] = rgbImage.pixels[i]; 
-      } // if (userMap[i] != 0)
-    } // (int i =0; i < userMap.length; i++)
-    updatePixels();
-  } // if (tracking)
+   
+// get the Kinect color image
+  rgbImage = kinect.rgbImage(); 
+  // prepare the color pixels
+  loadPixels();
+  // get pixels for the user tracked
+  userMapping = kinect.userMap();
+    
+  // for the length of the pixels tracked, color them
+  // in with the rgb camera
+  for (int i =0; i < userMapping.length; i++) {
+    // if the pixel is part of the user
+    if (userMapping[i] != 0) {
+      // set the sketch pixel to the rgb camera pixel
+      pixels[i] = rgbImage.pixels[i]; 
+    } // if (userMap[i] != 0)
+  } // (int i =0; i < userMap.length; i++)
+   
+  // update any changed pixels
+  updatePixels();
   
   //draw drum image at coordinates (100,200)
   image(img,100,200);
@@ -292,86 +288,24 @@ void draw()
   
 } // void draw() 
 
-/**----------------------------------------------------------
-Called when new user is found.  Prints new user ID and
-starts pose detection if skeleton tracking is not enabled.
-If it is then end method. Input is int user ID of new user.
------------------------------------------------------------*/
-void onNewUser(int userId) 
-{ 
-  tracking = true;
-  println("tracking");
-  
-  println("onNewUser - userId: " + userId); 
-  
-  if (kinect.isTrackingSkeleton(userId)) 
-    return; 
-    
-  println(" start pose detection"); 
-  kinect.startPoseDetection("Psi", userId);
-  
-} // void onNewUser(int userId)
+/*---------------------------------------------------------------
+When a new user is found, print new user detected along with
+userID and start pose detection.  Input is userID
+----------------------------------------------------------------*/
+void onNewUser(SimpleOpenNI curContext, int userId){
+  println("New User Detected - userId: " + userId);
+  // start tracking of user id
+  curContext.startTrackingSkeleton(userId);
+} //void onNewUser(SimpleOpenNI curContext, int userId)
+   
+/*---------------------------------------------------------------
+Print when user is lost. Input is int userId of user lost
+----------------------------------------------------------------*/
+void onLostUser(SimpleOpenNI curContext, int userId){
+  // print user lost and user id
+  println("User Lost - userId: " + userId);
+} //void onLostUser(SimpleOpenNI curContext, int userId)
 
-/**----------------------------------------------------------
-Called when a user is lost. Prints the user ID of user lost.
-Input is int userId of lost user.
------------------------------------------------------------*/
-void onLostUser(int userId) 
-{ 
-  println("onLostUser - userId: " + userId); 
-}
-
-/**----------------------------------------------------------
-Called when pose is detected.  Stops pose detection and
-requests for a skeleton calibration. Input is String of
-the pose detected and int user ID.
------------------------------------------------------------*/
-void onStartPose(String pose, int userId) 
-{ 
-  println("onStartPose - userId: " + userId + ", pose: " + pose); 
-  println(" stop pose detection"); 
-  kinect.stopPoseDetection(userId); 
-  kinect.requestCalibrationSkeleton(userId, true); 
-}
-
-/**----------------------------------------------------------
-Called when a pose has ended.  Input is String pose detected
-and int user ID.
------------------------------------------------------------*/
-void onEndPose(String pose, int userId)
-{ 
-  println("onEndPose - userId: " + userId + ", pose: " + pose); 
-} 
-
-/**----------------------------------------------------------
-Called when skeleton calibration starts. Input is int user ID.
------------------------------------------------------------*/
-void onStartCalibration(int userId) 
-{ 
-  println("onStartCalibration - userId: " + userId); 
-} 
-
-/**----------------------------------------------------------
-Called when skeleton calibration has ended.  If calibration
-has been successful, then start tracking skeleton otherwise
-start pose detection again. Input is int user ID and boolean
-if user has been successfully calibrated.
------------------------------------------------------------*/
-void onEndCalibration(int userId, boolean successfull)
-{ 
-  println("onEndCalibration - userId: " + userId + ", successfull: " + successfull); 
-  if (successfull) 
-  { 
-    println(" User calibrated !!!"); 
-    kinect.startTrackingSkeleton(userId); 
-  } 
-  else 
-  { 
-    println(" Failed to calibrate user !!!"); 
-    println(" Start pose detection"); 
-    kinect.startPoseDetection("Psi", userId); 
-  } 
-}
 
 /**----------------------------------------------------------
 Gets XYZ coordinates of tracked hands. Input is user ID.
